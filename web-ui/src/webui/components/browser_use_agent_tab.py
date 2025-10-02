@@ -1006,48 +1006,70 @@ def create_browser_use_agent_tab(webui_manager: WebuiManager):
 
     # --- Define UI Components ---
     tab_components = {}
-    with gr.Column():
-        chatbot = gr.Chatbot(
-            lambda: webui_manager.bu_chat_history,  # Load history dynamically
-            elem_id="browser_use_chatbot",
-            label="Agent Interaction",
-            type="messages",
-            height=600,
-            show_copy_button=True,
-        )
-        user_input = gr.Textbox(
-            label="Your Task or Response",
-            placeholder="Enter your task here or provide assistance when asked.",
-            lines=3,
-            interactive=True,
-            elem_id="user_input",
-        )
-        with gr.Row():
-            stop_button = gr.Button(
-                "⏹️ Stop", interactive=False, variant="stop", scale=2
+    with gr.Row():
+        # Left column: primary interaction area
+        with gr.Column(scale=3):
+            chatbot = gr.Chatbot(
+                lambda: webui_manager.bu_chat_history,  # Load history dynamically
+                elem_id="browser_use_chatbot",
+                label="Agent Interaction",
+                type="messages",
+                height=600,
+                show_copy_button=True,
             )
-            pause_resume_button = gr.Button(
-                "⏸️ Pause", interactive=False, variant="secondary", scale=2, visible=True
+            user_input = gr.Textbox(
+                label="Your Task or Response",
+                placeholder="Enter your task here or provide assistance when asked.",
+                lines=3,
+                interactive=True,
+                elem_id="user_input",
             )
-            clear_button = gr.Button(
-                "🗑️ Clear", interactive=True, variant="secondary", scale=2
-            )
-            run_button = gr.Button("▶️ Submit Task", variant="primary", scale=3)
+            with gr.Row():
+                stop_button = gr.Button(
+                    "⏹️ Stop", interactive=False, variant="stop", scale=2
+                )
+                pause_resume_button = gr.Button(
+                    "⏸️ Pause", interactive=False, variant="secondary", scale=2, visible=True
+                )
+                clear_button = gr.Button(
+                    "🗑️ Clear", interactive=True, variant="secondary", scale=2
+                )
+                run_button = gr.Button("▶️ Submit Task", variant="primary", scale=3)
 
-        browser_view = gr.HTML(
-            value="<div style='width:100%; height:50vh; display:flex; justify-content:center; align-items:center; border:1px solid #ccc; background-color:#f0f0f0;'><p>Browser View (Requires Headless=True)</p></div>",
-            label="Browser Live View",
-            elem_id="browser_view",
-            visible=False,
-        )
-        with gr.Column():
-            gr.Markdown("### Task Outputs")
-            agent_history_file = gr.File(label="Agent History JSON", interactive=False)
-            recording_gif = gr.Image(
-                label="Task Recording GIF",
-                format="gif",
-                interactive=False,
-                type="filepath",
+            browser_view = gr.HTML(
+                value="<div style='width:100%; height:50vh; display:flex; justify-content:center; align-items:center; border:1px solid #ccc; background-color:#f0f0f0;'><p>Browser View (Requires Headless=True)</p></div>",
+                label="Browser Live View",
+                elem_id="browser_view",
+                visible=False,
+            )
+            with gr.Column():
+                gr.Markdown("### Task Outputs")
+                agent_history_file = gr.File(label="Agent History JSON", interactive=False)
+                recording_gif = gr.Image(
+                    label="Task Recording GIF",
+                    format="gif",
+                    interactive=False,
+                    type="filepath",
+                )
+
+        # Right column: Dashboard controls
+        with gr.Column(scale=2):
+            gr.Markdown("### Dashboard")
+            gr.Markdown("Configure three dimensions. Options: 0, 0.5, 1")
+            rigidity = gr.Radio(
+                choices=[0.0, 0.5, 1.0],
+                value=0.5,
+                label="Rigidity",
+            )
+            independence = gr.Radio(
+                choices=[0.0, 0.5, 1.0],
+                value=0.5,
+                label="Independence",
+            )
+            goal_persistence = gr.Radio(
+                choices=[0.0, 0.5, 1.0],
+                value=0.5,
+                label="Goal Persistence",
             )
 
     # --- Store Components in Manager ---
@@ -1062,6 +1084,9 @@ def create_browser_use_agent_tab(webui_manager: WebuiManager):
             agent_history_file=agent_history_file,
             recording_gif=recording_gif,
             browser_view=browser_view,
+            rigidity=rigidity,
+            independence=independence,
+            goal_persistence=goal_persistence,
         )
     )
     webui_manager.add_components(
