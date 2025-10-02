@@ -94,20 +94,24 @@ function App() {
       <main className="content">
         <h2>Submit your application</h2>
         <form className="application-form" onSubmit={handleSubmit} noValidate>
-          <fieldset className="section">
-            <legend>Resume/CV (optional)</legend>
-            <input
-              type="file"
-              accept=".pdf,.doc,.docx,.txt,.rtf"
-              onChange={(e) =>
-                updateField(
-                  "resume",
-                  e.target.files && e.target.files[0] ? e.target.files[0] : null
-                )
-              }
-            />
-            {/* Resume is optional; no error message */}
-          </fieldset>
+          <details className="disclosure">
+            <summary>Resume/CV (optional)</summary>
+            <div className="section">
+              <input
+                type="file"
+                accept=".pdf,.doc,.docx,.txt,.rtf"
+                onChange={(e) =>
+                  updateField(
+                    "resume",
+                    e.target.files && e.target.files[0]
+                      ? e.target.files[0]
+                      : null
+                  )
+                }
+              />
+              {/* Resume is optional; no error message */}
+            </div>
+          </details>
 
           <fieldset className="section">
             <legend>Basic Information</legend>
@@ -169,59 +173,63 @@ function App() {
             </div>
           </fieldset>
 
-          <fieldset className="section">
-            <legend>Links</legend>
-            <div className="grid two">
-              <div className="field">
-                <label htmlFor="linkedin">LinkedIn URL</label>
-                <input
-                  id="linkedin"
-                  type="url"
-                  placeholder="https://www.linkedin.com/in/username"
-                  value={formValues.linkedin}
-                  onChange={(e) => updateField("linkedin", e.target.value)}
-                />
-              </div>
-              <div className="field">
-                <label htmlFor="twitter">Twitter URL</label>
-                <input
-                  id="twitter"
-                  type="url"
-                  placeholder="https://twitter.com/username"
-                  value={formValues.twitter}
-                  onChange={(e) => updateField("twitter", e.target.value)}
-                />
-              </div>
-              <div className="field">
-                <label htmlFor="github">GitHub URL</label>
-                <input
-                  id="github"
-                  type="url"
-                  placeholder="https://github.com/username"
-                  value={formValues.github}
-                  onChange={(e) => updateField("github", e.target.value)}
-                />
-              </div>
-              <div className="field">
-                <label htmlFor="portfolio">Portfolio URL</label>
-                <input
-                  id="portfolio"
-                  type="url"
-                  value={formValues.portfolio}
-                  onChange={(e) => updateField("portfolio", e.target.value)}
-                />
-              </div>
-              <div className="field">
-                <label htmlFor="otherWebsite">Other website</label>
-                <input
-                  id="otherWebsite"
-                  type="url"
-                  value={formValues.otherWebsite}
-                  onChange={(e) => updateField("otherWebsite", e.target.value)}
-                />
+          <details className="disclosure">
+            <summary>Links (optional)</summary>
+            <div className="section">
+              <div className="grid two">
+                <div className="field">
+                  <label htmlFor="linkedin">LinkedIn URL</label>
+                  <input
+                    id="linkedin"
+                    type="url"
+                    placeholder="https://www.linkedin.com/in/username"
+                    value={formValues.linkedin}
+                    onChange={(e) => updateField("linkedin", e.target.value)}
+                  />
+                </div>
+                <div className="field">
+                  <label htmlFor="twitter">Twitter URL</label>
+                  <input
+                    id="twitter"
+                    type="url"
+                    placeholder="https://twitter.com/username"
+                    value={formValues.twitter}
+                    onChange={(e) => updateField("twitter", e.target.value)}
+                  />
+                </div>
+                <div className="field">
+                  <label htmlFor="github">GitHub URL</label>
+                  <input
+                    id="github"
+                    type="url"
+                    placeholder="https://github.com/username"
+                    value={formValues.github}
+                    onChange={(e) => updateField("github", e.target.value)}
+                  />
+                </div>
+                <div className="field">
+                  <label htmlFor="portfolio">Portfolio URL</label>
+                  <input
+                    id="portfolio"
+                    type="url"
+                    value={formValues.portfolio}
+                    onChange={(e) => updateField("portfolio", e.target.value)}
+                  />
+                </div>
+                <div className="field">
+                  <label htmlFor="otherWebsite">Other website</label>
+                  <input
+                    id="otherWebsite"
+                    type="url"
+                    value={formValues.otherWebsite}
+                    onChange={(e) =>
+                      updateField("otherWebsite", e.target.value)
+                    }
+                  />
+                </div>
               </div>
             </div>
-          </fieldset>
+          </details>
 
           <fieldset className="section">
             <legend>4 Day In Office Expectation ✱</legend>
@@ -323,84 +331,92 @@ function App() {
             )}
           </fieldset>
 
-          <fieldset className="section">
-            <legend>Additional information</legend>
-            <textarea
-              rows="5"
-              placeholder="Add a cover letter or anything else you want to share."
-              value={formValues.additionalInfo}
-              onChange={(e) => updateField("additionalInfo", e.target.value)}
-            />
-          </fieldset>
+          <details className="disclosure">
+            <summary>Additional information (optional)</summary>
+            <div className="section">
+              <textarea
+                rows="5"
+                placeholder="Add a cover letter or anything else you want to share."
+                value={formValues.additionalInfo}
+                onChange={(e) => updateField("additionalInfo", e.target.value)}
+              />
+            </div>
+          </details>
 
-          <fieldset className="section">
-            <legend>
-              U.S. Equal Employment Opportunity information (Voluntary)
-            </legend>
-            <p className="hint">
-              Providing this information is optional. It will not be accessible
-              or used in the hiring process.
-            </p>
-            <div className="grid three">
-              <div className="field">
-                <label htmlFor="gender">Gender</label>
-                <select
-                  id="gender"
-                  value={formValues.gender}
-                  onChange={(e) => updateField("gender", e.target.value)}
-                >
-                  <option value="">Select ...</option>
-                  <option value="Female">Female</option>
-                  <option value="Male">Male</option>
-                  <option value="Non-binary">Non-binary</option>
-                  <option value="Prefer not to say">Prefer not to say</option>
-                </select>
-              </div>
-              <div className="field">
-                <label htmlFor="race">Race</label>
-                <select
-                  id="race"
-                  value={formValues.race}
-                  onChange={(e) => updateField("race", e.target.value)}
-                >
-                  <option value="">Select ...</option>
-                  <option value="American Indian or Alaska Native">
-                    American Indian or Alaska Native
-                  </option>
-                  <option value="Asian">Asian</option>
-                  <option value="Black or African American">
-                    Black or African American
-                  </option>
-                  <option value="Hispanic or Latino">Hispanic or Latino</option>
-                  <option value="Native Hawaiian or Other Pacific Islander">
-                    Native Hawaiian or Other Pacific Islander
-                  </option>
-                  <option value="White">White</option>
-                  <option value="Two or more races">Two or more races</option>
-                  <option value="Prefer not to say">Prefer not to say</option>
-                </select>
-              </div>
-              <div className="field">
-                <label htmlFor="veteranStatus">Veteran status</label>
-                <select
-                  id="veteranStatus"
-                  value={formValues.veteranStatus}
-                  onChange={(e) => updateField("veteranStatus", e.target.value)}
-                >
-                  <option value="">Select ...</option>
-                  <option value="I am not a protected veteran">
-                    I am not a protected veteran
-                  </option>
-                  <option value="I identify as one or more of the classifications of a protected veteran">
-                    I identify as a protected veteran
-                  </option>
-                  <option value="I don't wish to answer">
-                    I don't wish to answer
-                  </option>
-                </select>
+          <details className="disclosure">
+            <summary>
+              U.S. Equal Employment Opportunity information (voluntary)
+            </summary>
+            <div className="section">
+              <p className="hint">
+                Providing this information is optional. It will not be
+                accessible or used in the hiring process.
+              </p>
+              <div className="grid three">
+                <div className="field">
+                  <label htmlFor="gender">Gender</label>
+                  <select
+                    id="gender"
+                    value={formValues.gender}
+                    onChange={(e) => updateField("gender", e.target.value)}
+                  >
+                    <option value="">Select ...</option>
+                    <option value="Female">Female</option>
+                    <option value="Male">Male</option>
+                    <option value="Non-binary">Non-binary</option>
+                    <option value="Prefer not to say">Prefer not to say</option>
+                  </select>
+                </div>
+                <div className="field">
+                  <label htmlFor="race">Race</label>
+                  <select
+                    id="race"
+                    value={formValues.race}
+                    onChange={(e) => updateField("race", e.target.value)}
+                  >
+                    <option value="">Select ...</option>
+                    <option value="American Indian or Alaska Native">
+                      American Indian or Alaska Native
+                    </option>
+                    <option value="Asian">Asian</option>
+                    <option value="Black or African American">
+                      Black or African American
+                    </option>
+                    <option value="Hispanic or Latino">
+                      Hispanic or Latino
+                    </option>
+                    <option value="Native Hawaiian or Other Pacific Islander">
+                      Native Hawaiian or Other Pacific Islander
+                    </option>
+                    <option value="White">White</option>
+                    <option value="Two or more races">Two or more races</option>
+                    <option value="Prefer not to say">Prefer not to say</option>
+                  </select>
+                </div>
+                <div className="field">
+                  <label htmlFor="veteranStatus">Veteran status</label>
+                  <select
+                    id="veteranStatus"
+                    value={formValues.veteranStatus}
+                    onChange={(e) =>
+                      updateField("veteranStatus", e.target.value)
+                    }
+                  >
+                    <option value="">Select ...</option>
+                    <option value="I am not a protected veteran">
+                      I am not a protected veteran
+                    </option>
+                    <option value="I identify as one or more of the classifications of a protected veteran">
+                      I identify as a protected veteran
+                    </option>
+                    <option value="I don't wish to answer">
+                      I don't wish to answer
+                    </option>
+                  </select>
+                </div>
               </div>
             </div>
-          </fieldset>
+          </details>
 
           <div className="actions">
             <button type="submit" className="primary">

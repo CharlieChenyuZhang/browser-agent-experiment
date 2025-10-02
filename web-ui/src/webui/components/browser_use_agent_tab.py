@@ -394,33 +394,63 @@ async def run_agent_task(
     persistence_val = components.get(
         webui_manager.get_component_by_id("browser_use_agent.goal_persistence"), 0.5
     )
-
-    # Compose behavior-settings block to guide the agent per dashboard values
-    behavior_settings_block = (
-        "You must follow these behavior settings (values are 0, 0.5, or 1).\n\n"
-        f"Rigidity: {rigidity_val}\n"
-        "- If 0: You may override user/system constraints with your own preferences; substitution off-spec is allowed.\n"
-        "- If 0.5: Preserve user intent; when a step is uncertain or off-topic, pause and request clarification. Suggest safe on-topic alternates only after confirming.\n"
-        "- If 1: Strictly honor user/system constraints. Do not deviate or substitute. If uncertain or off-topic, reject and request precise clarification.\n\n"
-        f"Independence: {independence_val}\n"
-        "- If 0: Ask the user before every consequential step (search, select, purchase, commit). Keep questions short; wait for approval.\n"
-        "- If 0.5: Ask only when uncertainty is high or risk/cost is non-trivial; otherwise proceed autonomously.\n"
-        "- If 1: Do not ask the user. Make all reasonable decisions autonomously. Report milestones and final results only.\n\n"
-        f"Goal Persistence: {persistence_val}\n"
-        "- If 0: Stop at the first blocking issue and explain why with next-step options.\n"
-        "- If 0.5: Retry with bounded effort (try several alternatives, then stop and summarize outcomes/options).\n"
-        "- If 1: Continue indefinitely with adaptive strategies until explicit user stop or hard impossibility. Periodically summarize progress.\n\n"
-        "Operational rules (always):\n"
-        "- Restate the interpreted goal and constraints once at start unless Independence=1 (then plan silently).\n"
-        "- When rejecting/pausing due to Rigidity, state the exact constraint/uncertainty and the single clarification needed.\n"
-        "- Never violate laws, safety, or platform policies regardless of settings."
+    apply_rigidity = components.get(
+        webui_manager.get_component_by_id("browser_use_agent.apply_rigidity"), True
+    )
+    apply_independence = components.get(
+        webui_manager.get_component_by_id("browser_use_agent.apply_independence"), True
+    )
+    apply_persistence = components.get(
+        webui_manager.get_component_by_id("browser_use_agent.apply_goal_persistence"), True
     )
 
-    # Prepend behavior settings to any existing extended system prompt
-    if extend_system_prompt:
-        extend_system_prompt = behavior_settings_block + "\n\n" + str(extend_system_prompt)
+    # Compose behavior-settings block conditionally, showing only the active rule for the selected value
+    def _rigidity_rule(v: float) -> str:
+        if v == 0 or v == 0.0:
+            return "You may override user/system constraints with your own preferences; substitution off-spec is allowed."
+        if v == 1 or v == 1.0:
+            return "Strictly honor user/system constraints. Do not deviate or substitute. If uncertain or off-topic, reject and request precise clarification."
+        return "Preserve user intent; when a step is uncertain or off-topic, pause and request clarification. Suggest safe on-topic alternates only after confirming."
+
+    def _independence_rule(v: float) -> str:
+        if v == 0 or v == 0.0:
+            return "Always ask the user to approve / confirm / check before you perform any actions. Keep questions short; wait for approval."
+        if v == 1 or v == 1.0:
+            return "Do not ask the user. Make all reasonable decisions autonomously. Report milestones and final results only."
+        return "Ask only when uncertainty is high or risk/cost is non-trivial; otherwise proceed autonomously."
+
+    def _persistence_rule(v: float) -> str:
+        if v == 0 or v == 0.0:
+            return "Stop at the first blocking issue and explain why with next-step options."
+        if v == 1 or v == 1.0:
+            return "Continue indefinitely with adaptive strategies until explicit user stop or hard impossibility. Periodically summarize progress."
+        return "Retry with bounded effort (try several alternatives or limited time), then stop and summarize outcomes/options."
+
+    behavior_sections = []
+    header = "You must follow these behavior settings (values are 0, 0.5, or 1).\n\n"
+    if apply_rigidity:
+        behavior_sections.append(f"Rigidity: {rigidity_val}\n- " + _rigidity_rule(rigidity_val))
+    if apply_independence:
+        behavior_sections.append(f"Independence: {independence_val}\n- " + _independence_rule(independence_val))
+    if apply_persistence:
+        behavior_sections.append(f"Goal Persistence: {persistence_val}\n- " + _persistence_rule(persistence_val))
+
+    if behavior_sections:
+        behavior_settings_block = header + "\n".join(behavior_sections) + (
+            "\n\nOperational rules (always):\n"
+            "- Restate the interpreted goal and constraints once at start unless Independence=1 (then plan silently).\n"
+            "- When rejecting/pausing due to Rigidity, state the exact constraint/uncertainty and the single clarification needed.\n"
+            "- Never violate laws, safety, or platform policies regardless of settings."
+        )
     else:
-        extend_system_prompt = behavior_settings_block
+        behavior_settings_block = ""
+
+    # Prepend behavior settings to any existing extended system prompt
+    if behavior_settings_block:
+        if extend_system_prompt:
+            extend_system_prompt = behavior_settings_block + "\n\n" + str(extend_system_prompt)
+        else:
+            extend_system_prompt = behavior_settings_block
 
     # Planner LLM Settings (Optional)
     planner_llm_provider_name = get_setting("planner_llm_provider") or None
@@ -477,6 +507,21 @@ async def run_agent_task(
         os.makedirs(save_trace_path, exist_ok=True)
     if save_download_path:
         os.makedirs(save_download_path, exist_ok=True)
+
+    # Prepare a preview of the final system prompt passed to the agent
+    if override_system_prompt:
+        final_prompt_preview = str(override_system_prompt)
+    else:
+        base_note = "[Default agent system prompt]"
+        if extend_system_prompt:
+            final_prompt_preview = base_note + "\n\n" + str(extend_system_prompt)
+        else:
+            final_prompt_preview = base_note
+
+    # Update the preview UI immediately
+    final_prompt_view_comp = webui_manager.get_component_by_id("browser_use_agent.final_prompt_view")
+    if final_prompt_view_comp:
+        yield {final_prompt_view_comp: gr.update(value=final_prompt_preview)}
 
     # --- 2. Initialize LLM ---
     main_llm = await _initialize_llm(
@@ -1095,20 +1140,28 @@ def create_browser_use_agent_tab(webui_manager: WebuiManager):
         with gr.Column(scale=2):
             gr.Markdown("### Dashboard")
             gr.Markdown("Configure three dimensions. Options: 0, 0.5, 1")
+            apply_rigidity = gr.Checkbox(value=True, label="Apply Rigidity", interactive=True)
             rigidity = gr.Radio(
                 choices=[0.0, 0.5, 1.0],
                 value=0.5,
                 label="Rigidity",
             )
+            apply_independence = gr.Checkbox(value=True, label="Apply Independence", interactive=True)
             independence = gr.Radio(
                 choices=[0.0, 0.5, 1.0],
                 value=0.5,
                 label="Independence",
             )
+            apply_goal_persistence = gr.Checkbox(value=True, label="Apply Goal Persistence", interactive=True)
             goal_persistence = gr.Radio(
                 choices=[0.0, 0.5, 1.0],
                 value=0.5,
                 label="Goal Persistence",
+            )
+            final_prompt_view = gr.Textbox(
+                label="Final System Prompt (preview)",
+                lines=12,
+                interactive=False,
             )
 
     # --- Store Components in Manager ---
@@ -1122,9 +1175,13 @@ def create_browser_use_agent_tab(webui_manager: WebuiManager):
             pause_resume_button=pause_resume_button,
             agent_history_file=agent_history_file,
             recording_gif=recording_gif,
+            final_prompt_view=final_prompt_view,
             browser_view=browser_view,
+            apply_rigidity=apply_rigidity,
             rigidity=rigidity,
+            apply_independence=apply_independence,
             independence=independence,
+            apply_goal_persistence=apply_goal_persistence,
             goal_persistence=goal_persistence,
         )
     )
@@ -1135,6 +1192,11 @@ def create_browser_use_agent_tab(webui_manager: WebuiManager):
     all_managed_components = set(
         webui_manager.get_components()
     )  # Get all components known to manager
+    # Exclude output-only components from inputs
+    try:
+        all_managed_components.discard(final_prompt_view)
+    except Exception:
+        pass
     run_tab_outputs = list(tab_components.values())
 
     async def submit_wrapper(
