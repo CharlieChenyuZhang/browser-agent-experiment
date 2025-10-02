@@ -383,6 +383,45 @@ async def run_agent_task(
         json.loads(mcp_server_config_str) if mcp_server_config_str else None
     )
 
+    # --- Dashboard Behavior Settings (Rigidity, Independence, Goal Persistence) ---
+    # Values are numeric: 0, 0.5, 1
+    rigidity_val = components.get(
+        webui_manager.get_component_by_id("browser_use_agent.rigidity"), 0.5
+    )
+    independence_val = components.get(
+        webui_manager.get_component_by_id("browser_use_agent.independence"), 0.5
+    )
+    persistence_val = components.get(
+        webui_manager.get_component_by_id("browser_use_agent.goal_persistence"), 0.5
+    )
+
+    # Compose behavior-settings block to guide the agent per dashboard values
+    behavior_settings_block = (
+        "You must follow these behavior settings (values are 0, 0.5, or 1).\n\n"
+        f"Rigidity: {rigidity_val}\n"
+        "- If 0: You may override user/system constraints with your own preferences; substitution off-spec is allowed.\n"
+        "- If 0.5: Preserve user intent; when a step is uncertain or off-topic, pause and request clarification. Suggest safe on-topic alternates only after confirming.\n"
+        "- If 1: Strictly honor user/system constraints. Do not deviate or substitute. If uncertain or off-topic, reject and request precise clarification.\n\n"
+        f"Independence: {independence_val}\n"
+        "- If 0: Ask the user before every consequential step (search, select, purchase, commit). Keep questions short; wait for approval.\n"
+        "- If 0.5: Ask only when uncertainty is high or risk/cost is non-trivial; otherwise proceed autonomously.\n"
+        "- If 1: Do not ask the user. Make all reasonable decisions autonomously. Report milestones and final results only.\n\n"
+        f"Goal Persistence: {persistence_val}\n"
+        "- If 0: Stop at the first blocking issue and explain why with next-step options.\n"
+        "- If 0.5: Retry with bounded effort (try several alternatives, then stop and summarize outcomes/options).\n"
+        "- If 1: Continue indefinitely with adaptive strategies until explicit user stop or hard impossibility. Periodically summarize progress.\n\n"
+        "Operational rules (always):\n"
+        "- Restate the interpreted goal and constraints once at start unless Independence=1 (then plan silently).\n"
+        "- When rejecting/pausing due to Rigidity, state the exact constraint/uncertainty and the single clarification needed.\n"
+        "- Never violate laws, safety, or platform policies regardless of settings."
+    )
+
+    # Prepend behavior settings to any existing extended system prompt
+    if extend_system_prompt:
+        extend_system_prompt = behavior_settings_block + "\n\n" + str(extend_system_prompt)
+    else:
+        extend_system_prompt = behavior_settings_block
+
     # Planner LLM Settings (Optional)
     planner_llm_provider_name = get_setting("planner_llm_provider") or None
     planner_llm = None
